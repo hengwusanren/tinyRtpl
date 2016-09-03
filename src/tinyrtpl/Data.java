@@ -4,6 +4,8 @@
 
 package tinyrtpl;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -60,13 +62,13 @@ public class Data {
             case 0:
                 return;
             case 1:
-                this.vboolean = (boolean)obj;
+                this.vboolean = (Boolean) obj;
                 break;
             case 2:
-                this.vint = (int)obj;
+                this.vint = (Integer) obj;
                 break;
             case 3:
-                this.vfloat = (float)obj;
+                this.vfloat = (Float) obj;
                 break;
             case 4:
                 this.vstring = (String)obj;
@@ -100,13 +102,13 @@ public class Data {
         String str;
         switch (type) {
             case 1:
-                str = Boolean.toString((boolean)obj);
+                str = Boolean.toString((Boolean) obj);
                 break;
             case 2:
-                str = Integer.toString((int)obj);
+                str = Integer.toString((Integer) obj);
                 break;
             case 3:
-                str = Float.toString((float)obj);
+                str = Float.toString((Float) obj);
                 break;
             case 4:
                 str = (String)obj;
@@ -119,7 +121,6 @@ public class Data {
     public void put(Object key, Object value) {
         if(this.type != 5 && this.type != 6) return;
         int kType = this.typeOf(key);
-        int vType = this.typeOf(value);
         if(kType < 1 || kType > 4) return;
         String keyStr = Data.stringOf(key, kType);
         if(this.type == 5) {
