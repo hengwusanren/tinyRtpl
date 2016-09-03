@@ -17,8 +17,9 @@ public class Data {
     private String vstring;
     private HashMap<String, Object> vmap;
     private Object[] varray;
+    private Data scope;
     private static String className = "tinyrtpl.Data";
-    private static HashMap<String ,Integer> classTypes = new HashMap<String ,Integer>(){
+    private static HashMap<String, Integer> classTypes = new HashMap<String, Integer>(){
         {
             put("java.lang.Boolean", 1);
             put("java.lang.Integer", 2);
