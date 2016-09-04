@@ -4,9 +4,6 @@
 
 package tinyrtpl;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
-
-import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Data {

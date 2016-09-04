@@ -5,6 +5,7 @@
 package tinyrtpl;
 
 import tinyrtpl.Data;
+import java.util.HashMap;
 import java.util.Stack;
 
 public class Rtpl {
@@ -12,7 +13,7 @@ public class Rtpl {
     private Data scope;
     private String tpl;
     private Stack<Data> stack;
-    private static HashMap<String, String> tokens = new HashMap<String, Integer>(){
+    private static HashMap<String, String> tokens = new HashMap<String, String>(){
         {
             put("{", "{{");
             put("}", "}}");
@@ -37,6 +38,10 @@ public class Rtpl {
     public String compile() {
         switch(this.type) {
         case 0:
+        case 1:
+        case 2:
+        case 3:
+        default:
             return this.tpl;
         }
     }
