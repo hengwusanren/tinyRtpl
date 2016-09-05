@@ -14,7 +14,6 @@ public class Data {
     private String vstring;
     private HashMap<String, Object> vmap;
     private Object[] varray;
-    private Data scope;
     private static String className = "tinyrtpl.Data";
     private static HashMap<String, Integer> classTypes = new HashMap<String, Integer>(){
         {
@@ -27,6 +26,9 @@ public class Data {
             put(Data.className, 7);
         }
     };
+    public int getType() {
+        return this.type;
+    }
     public Data() {
         this.type = 5;
         this.vmap = new HashMap<String, Object>();
@@ -51,8 +53,7 @@ public class Data {
                 return null;
         }
     }
-    public void val(Object obj) {
-        int type = Data.typeOf(obj);
+    public void val(Object obj, int type) {
         if(type >= 0 && type <= 6) {
             this.type = type;
         }
@@ -82,6 +83,13 @@ public class Data {
                 break;
             default:
         }
+    }
+    public void val(Object obj) {
+        int type = Data.typeOf(obj);
+        this.val(obj, type);
+    }
+    public Data(Object obj, int type) {
+        this.val(obj, type);
     }
     public Data(Object obj) {
         this.val(obj);
@@ -116,12 +124,51 @@ public class Data {
         }
         return str;
     }
+    @Override
+    public String toString() {
+        return Data.stringOf(this.val(), this.type);
+    }
+    public double toNumber() {
+        return 0;
+    }
+    public boolean toBoolean() {
+        boolean b = false;
+        switch (type) {
+            case 1:
+                b = this.vboolean;
+                break;
+            case 2:
+                b = (this.vint != 0);
+                break;
+            case 3:
+                b = (this.vfloat != 0.0f && this.vfloat != 0.0);
+                break;
+            case 4:
+                b = !(this.vstring == null || "".equals(this.vstring));
+                break;
+            case 5:
+                b = (this.vmap != null);
+                break;
+            case 6:
+                b = (this.varray != null);
+                break;
+            default:
+        }
+        return b;
+    }
     public void put(Object key, Object value) {
         if(this.type != 5 && this.type != 6) return;
         int kType = this.typeOf(key);
         if(kType < 1 || kType > 4) return;
         String keyStr = Data.stringOf(key, kType);
         if(this.type == 5) {
+            if(kType == 4) {
+                int dotPos = keyStr.indexOf('.');
+                if(dotPos > 0) {
+                    Data.dataOf(this.vmap.get(keyStr.substring(0, dotPos))).put(keyStr.substring(dotPos + 1), value);
+                    return;
+                }
+            }
             this.vmap.put(keyStr, Data.dataOf(value));
         } else {
             int index = Integer.parseInt(keyStr);
@@ -136,6 +183,10 @@ public class Data {
         if(kType < 1 || kType > 4) return null;
         String keyStr = Data.stringOf(key, kType);
         if(this.type == 5) {
+            if(kType == 4) {
+                int dotPos = keyStr.indexOf('.');
+                if(dotPos > 0) return Data.dataOf(this.vmap.get(keyStr.substring(0, dotPos))).get(keyStr.substring(dotPos + 1));
+            }
             return Data.dataOf(this.vmap.get(keyStr));
         } else {
             int index = Integer.parseInt(keyStr);
@@ -143,5 +194,27 @@ public class Data {
             if(index >= len || index < 0) return null;
             return Data.dataOf(this.varray[index]);
         }
+    }
+    public static Data op(char c, Data a, Data b) {
+        Data data = null;
+        switch (c) {
+        case '+':
+            data = new Data(a.toString() + b.toString(), 4);
+            break;
+        case '-':
+            break;
+        case '*':
+            break;
+        case '/':
+            break;
+        case '!':
+            break;
+        case '&': // "&&"
+            break;
+        case '|': // "||"
+            break;
+        default:
+        }
+        return data;
     }
 }

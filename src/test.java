@@ -19,5 +19,6 @@ public class test {
         data.put("2", 3);
         data.put(2, "3");
         System.out.print(data.get(2).val());
+        new Rtpl(data, "test-list", "./data", true);
     }
 }
