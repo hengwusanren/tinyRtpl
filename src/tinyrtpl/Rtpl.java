@@ -6,11 +6,12 @@ package tinyrtpl;
 
 import tinyrtpl.Data;
 
+import java.lang.Character;
 import java.util.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-
+import org.apache.commons.lang.StringEscapeUtils;
 // 指向当前数据的ref用"this."开头，否则是全局变量
 
 public class Rtpl {
@@ -277,41 +278,55 @@ public class Rtpl {
                 put(5, "");
                 put(6, "");
             }
-        };// 1: op, 2: ref, 3: boolean, 4: int, 5: float(double), 6: string
+        };// 1: op, 2: ref, 3: boolean(regarded as ref now, to be processed at '_get'), 4: int, 5: float(double), 6: string
 
         // exp里只剩op、ref、con
         TokenList r = new TokenList();
         char[] charArr = exp.toCharArray();
         int len = charArr.length;
         boolean nowIsRef = false;
+        int nowRefBegin = -1;
         boolean nowIsCon = false;
+        int nowConBegin = -1;
+        boolean nowIsConString = false;
         for(int i = 0; i < len; i++) {
             char c = charArr[i];
+            if(c != '"' && nowIsConString) continue;
             if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '$' || c == '_') {
                 //TODO: do with letter
 
                 continue;
             } else if(c >= '0' && c <= '9') {
                 //TODO: do with number
+                if(nowIsRef) continue;
+                if(nowIsCon) {
+
+                }
 
                 continue;
             } else if("+-*/%".indexOf(c) >= 0) {
                 //TODO: do with +-*/%
+                nowIsCon = nowIsRef = false;
+                r.add(1, Character.toString(c));
 
                 continue;
             } else if(c == '>' || c == '<') {
+                nowIsCon = nowIsRef = false;
                 if(i < len - 1 && charArr[i + 1] == '=') {
                     //TODO: do with >=, <=
+                    r.add(1, Character.toString(c) + "=");
 
                     i++;
                 } else {
                     //TODO: do with >, <
-
+                    r.add(1, Character.toString(c));
                 }
                 continue;
             } else if("=&|".indexOf(c) >= 0) {
                 if(i < len - 1 && charArr[i + 1] == c) {
                     //TODO: do with ==, &&, ||
+                    nowIsCon = nowIsRef = false;
+                    r.add(1, Character.toString(c) + Character.toString(c));
 
                     i++;
                     continue;
@@ -319,18 +334,27 @@ public class Rtpl {
                 return null;
             } else if(c == '.') {
                 //TODO: do with .
+                if(nowIsCon || nowIsRef) continue;
 
-                continue;
+                return null;
             } else if(c == '"') {
                 //TODO: do with "
-
-                continue;
-            } else if(c == '#') {
-                //TODO: do with #
-
-                continue;
+                if(nowIsConString) {
+                    r.add(6, exp.substring(nowConBegin + 1, i));
+                    nowIsConString = false;
+                    nowIsCon = false;
+                    continue;
+                } else {
+                    nowIsConString = true;
+                    nowIsCon = true;
+                    nowIsRef = false;
+                    nowConBegin = i;
+                    continue;
+                }
             } else {
                 //TODO: do with whitespace
+                nowIsRef = false;
+                nowIsCon = false;
 
                 continue;
             }
@@ -378,6 +402,7 @@ public class Rtpl {
 
     private static Data _get(Data odata, String oref, boolean wrap) {
         String ref = oref.trim();
+        if("true".equals(ref) || "false".equals(ref)) return new Data("true".equals(ref), 1); // do with constant "true/false"
         Data data;
         if (wrap) {
             data = new Data();
@@ -395,8 +420,12 @@ public class Rtpl {
         return Rtpl.process(data, Rtpl.readFile(Rtpl.getFilePath(name)), 0);
     }
 
-    private static String processGet(Data data, String ref) {
-        return Rtpl._get(data, ref, false).toString();
+    private static String processGet(Data data, String oref) {
+        if(data == null || oref == null) return null;
+        String ref = oref.trim();
+        if("".equals(ref)) return null;
+        if(ref.charAt(0) == '#') return Rtpl._get(data, ref.substring(1), false).toString();
+        return StringEscapeUtils.escapeHtml(Rtpl._get(data, ref, false).toString());
     }
 
     private static String readFile(String fileName) {
