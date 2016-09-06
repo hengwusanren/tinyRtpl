@@ -1,0 +1,15 @@
+<div>
+
+</div>
+<a>
+</a>
+<span> </span>
+{{123}}{{each list as value index}}
+<li>
+    {{if value.user}}
+        {{include 'test-item-normal' as value.user}}
+    {{else}}
+        {{include 'test-item-error'}}
+    {{/if}}
+</li>
+{{/each}}
