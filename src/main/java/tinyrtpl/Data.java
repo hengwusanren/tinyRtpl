@@ -127,6 +127,7 @@ public class Data {
         if(obj instanceof Double) return 3;
         if(obj instanceof String) return 4;
         if(obj instanceof HashMap) return 5;
+        if(obj instanceof ArrayList) return 6;
         if(obj.getClass().isArray()) return 6;
         if(Data.className.equals(obj.getClass().getName())) return 7;
         return -1;

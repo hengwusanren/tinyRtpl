@@ -28,6 +28,11 @@ public class Rtpl {
         System.out.println(this.value);
     }
 
+    @Override
+    public String toString() {
+        return this.value;
+    }
+
     public Rtpl(Data data, String src, String dir, boolean file) {
         Rtpl.tplFileBaseDir = dir;
         new Rtpl(data, file ? readFile(Rtpl.getFilePath(src)) : src, dir);
@@ -100,9 +105,39 @@ public class Rtpl {
         return tpl.substring(begin);
     }
 
-    private static LinkedHashMap<String, String> getBranchesOfIf(String frag) {
+    private static LinkedHashMap<String, String> getBranchesOfIf(String blocks) {
         LinkedHashMap<String, String> branches = new LinkedHashMap<String, String>();
-        //TODO
+        String condition;
+        String block;
+        for(int p = 0, len = blocks.length(); p < len;) {
+            int fragBegin = blocks.indexOf("{{", p);
+            if(fragBegin < 0) break;
+            int fragEnd = blocks.indexOf("}}", fragBegin + 2);
+            if(fragEnd < 0) break;
+            condition = blocks.substring(fragBegin + 2, fragEnd).trim();
+            switch (Rtpl.typeOfFrag(condition)) {
+                case 1:
+                    condition = condition.substring(3);
+                    break;
+                case 2:
+                    condition = condition.substring(condition.indexOf(" if ") + 4);
+                    break;
+                case 3:
+                    condition = condition.substring(5);
+                    break;
+            }
+            fragBegin = blocks.indexOf("{{", fragEnd + 2);
+            if(fragBegin < 0) {
+                block = blocks.substring(fragEnd + 2);
+                branches.put(condition, block);
+                break;
+            } else {
+                block = blocks.substring(fragEnd + 2, fragBegin);
+                branches.put(condition, block);
+                p = fragBegin;
+                continue;
+            }
+        }
         return branches;
     }
 
@@ -448,7 +483,18 @@ public class Rtpl {
         Data data;
         if (wrap) {
             data = new Data();
-            data.put("this", (ref == null || "".equals(ref)) ? odata : odata.get(ref)); // 不支持自定义变量渗透进子作用域传递
+            data.put("this", (ref == null || "".equals(ref)) ? odata : odata.get(ref));
+
+            // 支持自定义变量渗透进子作用域传递
+            Map m = (HashMap) odata.val();
+            Iterator it = m.entrySet().iterator();
+            String kStr;
+            while (it.hasNext()) {
+                Map.Entry e = (Map.Entry) it.next();
+                kStr = (String) e.getKey();
+                if("this".equals(kStr)) continue;
+                data.put(kStr, e.getValue());
+            }
         } else data = (ref == null || "".equals(ref)) ? odata : odata.get(ref);
         return data;
     }
@@ -470,7 +516,7 @@ public class Rtpl {
         return StringEscapeUtils.escapeHtml4(Rtpl._get(data, ref, false).toString());
     }
 
-    private static String readFile(String fileName) {
+    public static String readFile(String fileName) {
         if (fileName == null) return "";
         BufferedReader br = null;
         StringBuilder sb = new StringBuilder("");

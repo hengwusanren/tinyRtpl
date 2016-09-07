@@ -1,15 +1,17 @@
 <div>
-
+{{this.number}}
 </div>
 <a>
 </a>
 <span> </span>
-{{123}}{{each list as value index}}
+{{123}}{{each this.list as value index}}
 <li>
     {{if value.user}}
-        {{include 'test-item-normal' as value.user}}
+        {{include 'test-item-user' as value.user}}
+    {{else if value.pet}}
+        {{include 'test-item-pet' as value}}
     {{else}}
         {{include 'test-item-error'}}
     {{/if}}
 </li>
-{{/each}}
+{{/each}}{{this.undefinedProperty}}
