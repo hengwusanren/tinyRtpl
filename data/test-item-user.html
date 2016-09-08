@@ -1,8 +1,11 @@
 {{this.name}}
-{{if this.age < 18}}
+{{if -(this.age+ 1) >= -18}}
     '未成年'
 {{else if this.age <= 59}}
     '中年'
 {{else}}
     '老年'
 {{/if}}
+{{set oldName this.name}}
+{{set newName "Lucy"}}
+let's rename {{oldName}} to "Lulu", oh sorry, {{newName}}.

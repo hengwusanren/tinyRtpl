@@ -1,8 +1,9 @@
-package tinyrtpl;
-
 /**
  * Created by keshen on 2016/9/7.
  */
+
+package tinyrtpl;
+
 import junit.framework.TestCase;
 import org.junit.Assert;
 import org.junit.BeforeClass;

@@ -1,13 +1,14 @@
-package tinyrtpl;
-
 /**
  * Created by keshen on 2016/9/7.
  */
+
+package tinyrtpl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Mock {
+    public static Object[] objectArr = {};
     public static boolean[] booleanValues = {false, true};
     public static int[] intValues = {0, -1, 2, -9, 100, -2147483648, 2147483647};
     public static long[] longValues = {0, -1, 2, -9, 100, -2147483648, 2147483647};
@@ -21,8 +22,10 @@ public class Mock {
             put(true, 0);
             put(3, "");
             put(-1.2, "\"\n\r\n123 qwe.wer.14\" --=$\"");
+            put("\" \n\r", null);
         }
     };
+    public static HashMap<Object, Object> mapValue2 = new HashMap<Object, Object>();
     public static HashMap<Object, Object> mapValue1 = new HashMap<Object, Object>(){
         {
             put("1", false);
@@ -42,7 +45,7 @@ public class Mock {
                         {
                             put("user", new HashMap<Object, Object>(){
                                 {
-                                    put("name", "lily");
+                                    put("name", "Lily");
                                     put("age", 10);
                                 }
                             });
@@ -50,7 +53,7 @@ public class Mock {
                     });
                     add(new HashMap<Object, Object>(){
                         {
-                            put("pet", "shiba");
+                            put("pet", "Shiba");
                         }
                     });
                 }

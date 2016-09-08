@@ -1,11 +1,18 @@
-package tinyrtpl; /**
+/**
  * Created by keshen on 2016/9/2.
  */
 
+package tinyrtpl;
+
 import junit.framework.TestCase;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import java.util.Arrays;
+
+import java.util.ArrayList;
+
 import static tinyrtpl.Mock.*;
 
 public class TestData extends TestCase {
@@ -34,7 +41,8 @@ public class TestData extends TestCase {
         Assert.assertEquals(5, Data.typeOf(mapValue0));
         Assert.assertEquals(5, Data.typeOf(mapValue1));
 
-        Assert.assertEquals(6, Data.typeOf(intValues));
+        Assert.assertEquals(-1, Data.typeOf(intValues));
+        Assert.assertEquals(6, Data.typeOf(Arrays.asList(intValues)));
         Assert.assertEquals(6, Data.typeOf(arrayListValue0));
         Assert.assertEquals(6, Data.typeOf(arrayListValue1));
 
@@ -45,6 +53,61 @@ public class TestData extends TestCase {
 
     @Test
     public void testToString() {
+        for(boolean i : booleanValues)
+            Assert.assertEquals(Boolean.toString(i), new Data(i, 1).toString());
+        for(int i : intValues)
+            Assert.assertEquals(Integer.toString(i), new Data(i, 2).toString());
+        for(double i : doubleValues)
+            Assert.assertEquals(Double.toString(i), new Data(i, 3).toString());
+        for(String i : stringValues)
+            Assert.assertEquals(i, new Data(i, 4).toString());
+        Assert.assertEquals("", new Data(mapValue0, 5).toString());
+        Assert.assertEquals("", new Data(mapValue1, 5).toString());
+        Assert.assertEquals("", new Data(mapValueForTpl, 5).toString());
+        Assert.assertEquals("", new Data(arrayListValue0, 6).toString());
+        Assert.assertEquals("", new Data(arrayListValue1, 6).toString());
+        Assert.assertEquals("", new Data(Arrays.asList(objectArr), 6).toString());
 
+        Assert.assertEquals("", new Data("", 4).toString());
+        Assert.assertEquals("", new Data("", 4).toString());
+        Assert.assertEquals("\"", new Data("\"", 4).toString());
+
+        // string is "
+        // 123 abc\
+        // "
+        Assert.assertEquals("string is \"\n123 abc\\\r\"", new Data("string is \"\n123 abc\\\r\"", 4).toString());
+        Assert.assertEquals("true", new Data(true, 1).toString());
+        Assert.assertEquals("null", new Data(null).toString());
+        Assert.assertEquals("0", new Data(0, 2).toString());
+    }
+
+    @Test
+    public void testToJsonString() {
+        for(boolean i : booleanValues)
+            Assert.assertEquals(Boolean.toString(i), new Data(i, 1).toJsonString());
+        for(int i : intValues)
+            Assert.assertEquals(Integer.toString(i), new Data(i, 2).toJsonString());
+        for(double i : doubleValues)
+            Assert.assertEquals(Double.toString(i), new Data(i, 3).toJsonString());
+        for(String i : stringValues)
+            Assert.assertEquals("\"" + StringEscapeUtils.escapeJson(i) + "\"", new Data(i, 4).toJsonString());
+        Assert.assertEquals("{\"1\":false,\"2\":0,\"3\":\"\",\"true\":0,\"-1.2\":\"\\\"\\n\\r\\n123 qwe.wer.14\\\" --=$\\\"\",\"\\\" \\n\\r\":null}",
+                new Data(mapValue0, 5).toJsonString());
+        Assert.assertEquals("{}", new Data(mapValue2, 5).toJsonString());
+        Assert.assertEquals("[]", new Data(Arrays.asList(objectArr), 6).toJsonString());
+        Assert.assertEquals("[0,0.0,-1.0,2.1,12,-16]", new Data(Arrays.asList(0, 0.0f, -1.0f, 2.1f, 12, -16), 6).toJsonString());
+
+        Assert.assertEquals("\"\"", new Data("", 4).toJsonString());
+        Assert.assertEquals("\"\\\"\"", new Data("\"", 4).toJsonString());
+
+        // string is "
+        // 123 abc\
+        // "
+        Assert.assertEquals("\"string is \\\"\\n123 abc\\\\\\r\\\"\"", new Data("string is \"\n123 abc\\\r\"", 4).toJsonString());
+        Assert.assertEquals("true", new Data(true, 1).toJsonString());
+        Assert.assertEquals("\"true\"", new Data("true", 4).toJsonString());
+        Assert.assertEquals("null", new Data(null).toJsonString());
+        Assert.assertEquals("0", new Data(0, 2).toJsonString());
+        Assert.assertEquals("\"0\"", new Data("0", 4).toJsonString());
     }
 }

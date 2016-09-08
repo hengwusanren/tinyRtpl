@@ -4,10 +4,10 @@
 
 package tinyrtpl;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
 import java.math.BigDecimal;
+
+import org.apache.commons.lang3.StringEscapeUtils;
 
 public class Data {
     private int type = -1; // 0: null, 1: Boolean, 2: Number, 3: Float, 4: String, 5: Map, 6: Array, 7: Data(converting)
@@ -15,8 +15,8 @@ public class Data {
     private int vint;
     private double vfloat;
     private String vstring;
-    private HashMap<String, Object> vmap;
-    private ArrayList<Object> varray;
+    private HashMap<String, Data> vmap;
+    private ArrayList<Data> varray;
     private static String className = "tinyrtpl.Data";
     private static HashMap<String, Integer> opTypes = new HashMap<String, Integer>() {
         {
@@ -44,7 +44,7 @@ public class Data {
 
     public Data() {
         this.type = 5;
-        this.vmap = new HashMap<String, Object>();
+        this.vmap = new HashMap<String, Data>();
     }
 
     public Object val() {
@@ -66,6 +66,31 @@ public class Data {
             default:
                 return null;
         }
+    }
+
+    private static HashMap<String, Data> dataMapOf(HashMap<Object, Object> map) {
+        if(map == null) return null;
+        HashMap<String, Data> dmap = new HashMap<>();
+        Iterator it = map.entrySet().iterator();
+        int vType = -1;
+        while (it.hasNext()) {
+            Map.Entry e = (Map.Entry) it.next();
+            vType = Data.typeOf(e.getValue());
+            dmap.put(e.getKey().toString(), new Data(e.getValue(), vType));
+        }
+        return dmap;
+    }
+
+    private static ArrayList<Data> dataArrayOf(List<Object> list) {
+        if(list == null) return null;
+        ArrayList<Data> darray = new ArrayList<>();
+        if(list.size() == 0) return darray;
+        int vType = -1;
+        for(Object obj : list) {
+            vType = Data.typeOf(obj);
+            darray.add(new Data(obj, vType));
+        }
+        return darray;
     }
 
     public void val(Object obj, int type) {
@@ -93,11 +118,10 @@ public class Data {
                 this.vstring = (String) obj;
                 break;
             case 5:
-                this.vmap = (HashMap<String, Object>) obj;
+                this.vmap = Data.dataMapOf((HashMap<Object, Object>) obj);
                 break;
             case 6:
-                if(obj instanceof ArrayList) this.varray = (ArrayList<Object>) obj;
-                else this.varray = new ArrayList<Object>(Arrays.asList(obj));
+                if(obj instanceof List) this.varray = Data.dataArrayOf((List<Object>) obj);
                 break;
             case 7:
                 this.val(((Data) obj).val());
@@ -127,17 +151,21 @@ public class Data {
         if(obj instanceof Double) return 3;
         if(obj instanceof String) return 4;
         if(obj instanceof HashMap) return 5;
-        if(obj instanceof ArrayList) return 6;
-        if(obj.getClass().isArray()) return 6;
-        if(Data.className.equals(obj.getClass().getName())) return 7;
+        if(obj instanceof List) return 6;
+//        if(obj.getClass().isArray()) return 6;
+//        if(Data.className.equals(obj.getClass().getName())) return 7;
+        if(obj instanceof Data) return 7;
         return -1;
     }
 
     public static Data dataOf(Object obj) {
+//        if(Data.className.equals(obj.getClass().getName())) return (Data) obj; // obj is already a Data.
+        if(obj instanceof Data) return (Data) obj; // obj is already a Data.
         return new Data(obj);
     }
 
     private static String stringOf(Object obj, int type) {
+        if(obj == null || type == 0) return "null";
         String str;
         switch (type) {
             case 1:
@@ -163,6 +191,49 @@ public class Data {
                 str = "";
         }
         return str;
+    }
+
+    public String toJsonString() {
+        switch (this.type) {
+            case 0:
+                return "null";
+            case 1:
+            case 2:
+            case 3:
+                return this.toString();
+            case 4:
+                return "\"" + StringEscapeUtils.escapeJson(this.toString()) + "\"";
+            case 5:
+                if(this.vmap == null) return "null";
+                StringBuilder sb = new StringBuilder("{");
+                Iterator it = this.vmap.entrySet().iterator();
+                boolean notEmpty = false;
+                while (it.hasNext()) {
+                    notEmpty = true;
+                    Map.Entry e = (Map.Entry) it.next();
+                    sb.append("\"" + StringEscapeUtils.escapeJson((String) e.getKey()) + "\":" + ((Data) e.getValue()).toJsonString()  + ",");
+                }
+                if(notEmpty) {
+                    sb.deleteCharAt(sb.length() - 1);
+                }
+                sb.append("}");
+                return sb.toString();
+            case 6:
+                if(this.varray == null) return "null";
+                StringBuilder sb1 = new StringBuilder("[");
+                boolean notEmpty1 = false;
+                for(Data dt : this.varray) {
+                    notEmpty1 = true;
+                    sb1.append(dt.toJsonString() + ",");
+                }
+                if(notEmpty1) {
+                    sb1.deleteCharAt(sb1.length() - 1);
+                }
+                sb1.append("]");
+                return sb1.toString();
+            default:
+                return "";
+        }
     }
 
     @Override
@@ -238,6 +309,50 @@ public class Data {
                 return this.vfloat == d.vfloat;
             case 4:
                 return this.vstring.equals(d.vstring);
+            default:
+                return this.val() == d.val();
+        }
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj == null || !(obj instanceof Data)) return false;
+        Data d = (Data) obj;
+        if(this.type != d.type) return false;
+        switch (this.type) {
+            case 1:
+                return this.vboolean == d.vboolean;
+            case 2:
+                return this.vint == d.vint;
+            case 3:
+                return this.vfloat == d.vfloat;
+            case 4:
+                return this.vstring.equals(d.vstring);
+            case 5:
+                if(this.vmap == null) return d.vmap == null;
+                if(d.vmap == null) return false;
+                Iterator it = this.vmap.entrySet().iterator();
+                while (it.hasNext()) {
+                    Map.Entry e = (Map.Entry) it.next();
+                    Object k = e.getKey();
+                    if(!d.vmap.containsKey(k)) return false;
+                    if(e.getValue() == null) {
+                        if(d.vmap.get(k) == null) continue;
+                        return false;
+                    }
+                    if(!e.getValue().equals(d.vmap.get(k))) return false;
+                }
+                return this.vmap.size() == d.vmap.size();
+            case 6:
+                if(this.varray == null) return d.varray == null;
+                if(d.varray == null) return false;
+                int len1 = this.varray.size(),
+                    len2 = d.varray.size();
+                if(len1 != len2) return false;
+                for(int i = 0; i < len1; i++) {
+                    if(!this.varray.get(i).equals(d.varray.get(i))) return false;
+                }
+                return true;
             default:
                 return this.val() == d.val();
         }
