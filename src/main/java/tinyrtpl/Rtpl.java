@@ -58,6 +58,40 @@ public class Rtpl {
         return 9;//"get";
     }
 
+    private static int indexOfEndingOverPairs(String s, int beginPos, String ending, String p1, String p2) {
+        int endingOccur = s.indexOf(ending, beginPos);
+        if(endingOccur < 0) return -1;
+
+        int p1Count = 0;
+        int p2Count = 0;
+        int p1Len = p1.length();
+        int p2Len = p2.length();
+        int i;
+
+        while(true) {
+            for (i = beginPos; i < endingOccur; i++) {
+                if (s.indexOf(p1, i) == i) {
+                    p1Count++;
+                    i += p1Len - 1;
+                    continue;
+                }
+                if (s.indexOf(p2, i) == i) {
+                    p2Count++;
+                    if (p2Count == p1Count) {
+                        break;
+                    }
+                    i += p2Len - 1;
+                    continue;
+                }
+            }
+            if (p1Count == p2Count) return endingOccur;
+            int nextEndingOccur = s.indexOf(ending, endingOccur + 1);
+            if (nextEndingOccur < 0) return endingOccur;
+            beginPos = endingOccur;
+            endingOccur = nextEndingOccur;
+        }
+    }
+
     private static String process(Data data, String tpl, int begin) {
         int fragBegin = tpl.indexOf("{{", begin);
         if (fragBegin < 0) return tpl.substring(begin);
@@ -68,10 +102,7 @@ public class Rtpl {
 
         // "{{if ...}}..."
         if (curFType == 1) {
-            int blockEnd = tpl.indexOf("{{/if}}", fragEnd + 2);
-            if (blockEnd < 0) {
-                return tpl.substring(begin);
-            }
+            int blockEnd = Rtpl.indexOfEndingOverPairs(tpl, fragEnd + 2, "{{/if}}", "{{if", "{{/if}}");
             return tpl.substring(begin, fragBegin) + Rtpl.processIf(data, Rtpl.getBranchesOfIf(tpl.substring(fragBegin, blockEnd))) + Rtpl.process(data, tpl, blockEnd + 7);
         }
 
@@ -109,35 +140,27 @@ public class Rtpl {
         LinkedHashMap<String, String> branches = new LinkedHashMap<String, String>();
         String condition;
         String block;
-        for(int p = 0, len = blocks.length(); p < len;) {
-            int fragBegin = blocks.indexOf("{{", p);
-            if(fragBegin < 0) break;
-            int fragEnd = blocks.indexOf("}}", fragBegin + 2);
-            if(fragEnd < 0) break;
-            condition = blocks.substring(fragBegin + 2, fragEnd).trim();
-            switch (Rtpl.typeOfFrag(condition)) {
-                case 1:
-                    condition = condition.substring(3);
-                    break;
-                case 2:
-                    condition = condition.substring(condition.indexOf(" if ") + 4);
-                    break;
-                case 3:
-                    condition = condition.substring(5);
-                    break;
-            }
-            fragBegin = blocks.indexOf("{{", fragEnd + 2);
-            if(fragBegin < 0) {
-                block = blocks.substring(fragEnd + 2);
-                branches.put(condition, block);
-                break;
-            } else {
-                block = blocks.substring(fragEnd + 2, fragBegin);
-                branches.put(condition, block);
-                p = fragBegin;
-                continue;
-            }
+        int p = 0;
+        int fragBegin = blocks.indexOf("{{", p);
+        if(fragBegin < 0) return branches;
+        int fragEnd = blocks.indexOf("}}", fragBegin + 2);
+        if(fragEnd < 0) return branches;
+        condition = blocks.substring(fragBegin + 5, fragEnd).trim(); // {{if condition}}
+
+        int findBegin = fragEnd + 2;
+        while(true) {
+            int elseBegin = Rtpl.indexOfEndingOverPairs(blocks, findBegin, "{{else", "{{if", "{{/if}}");
+            if(elseBegin < 0) break;
+            int elseEnd = blocks.indexOf("}}", elseBegin + 6);
+            if(elseEnd < 0) break;
+            block = blocks.substring(findBegin, elseBegin);
+            branches.put(condition, block);
+            condition = blocks.substring(elseBegin + (blocks.indexOf("{{else if", elseBegin) == elseBegin ? 9 : 6), elseEnd).trim();
+            findBegin = elseEnd + 2;
         }
+        block = blocks.substring(findBegin);
+        branches.put(condition, block);
+
         return branches;
     }
 
@@ -185,10 +208,10 @@ public class Rtpl {
                 sb.append(Rtpl.process(data, tpl, 0));
             }
         } else if (c.getType() == 6) { // array
-            Object[] a = (Object[]) c.val();
-            for (int i = 0, len = a.length; i < len; i++) {
+            ArrayList<Object> a = (ArrayList<Object>) c.val();
+            for (int i = 0, len = a.size(); i < len; i++) {
                 data.put(indexName, i);
-                data.put(valueName, a[i]);
+                data.put(valueName, a.get(i));
                 sb.append(Rtpl.process(data, tpl, 0));
             }
         }
@@ -296,14 +319,18 @@ public class Rtpl {
                     sb.append(tl.toString());
                 }
                 return sb.toString();
+            } else if(this.type == 1) {
+                return this.data.toString();
+            } else {
+                return ((Data) this.data).toJsonString();
             }
-            return this.data.toString();
         }
     }
 
     // 得到exp的TokenList
-    private static TokenList getTokensOfExp(Data data, String exp) {
-        if(exp == null || "".equals(exp)) return null;
+    private static TokenList getTokensOfExp(Data data, String oexp) {
+        if(oexp == null || "".equals(oexp)) return null;
+        String exp = oexp + " ";
 
         // ...(...)...
         int bracketBegin = exp.indexOf('(');
@@ -315,7 +342,7 @@ public class Rtpl {
                     leftBracketCount--;
                     if(leftBracketCount == 0) {
                         return Rtpl.getTokensOfExp(data, exp.substring(0, bracketBegin))
-                                .add(Rtpl.getTokensOfExp(data, exp.substring(bracketBegin, i)))
+                                .add(Rtpl.getTokensOfExp(data, exp.substring(bracketBegin + 1, i)))
                                 .concat(Rtpl.getTokensOfExp(data, exp.substring(i + 1)));
                     }
                 } else if(c == '(') {
@@ -338,7 +365,7 @@ public class Rtpl {
             char c = charArr[i];
             if(nowIsStr) {
                 if(c == '"' && !(i - 1 >= nowStrBegin && charArr[i - 1] == '\\')) {
-                    r.add(new TokenList(2, new Data(exp.substring(nowStrBegin, i + 1), 4))); // add a data
+                    r.add(new TokenList(2, new Data(exp.substring(nowStrBegin + 1, i), 4))); // add a data
                     nowIsStr = false;
                     nowIsRef = false;
                 }
@@ -406,12 +433,47 @@ public class Rtpl {
             if(tl.get(i).type == 0)
                 tl.set(i, 2, evalTokenList(tl.get(i)));
         }
+        if(tl.size() == 1) {
+            tl = tl.get(0);
+            return evalTokenList(tl);
+        }
 
         boolean useAviator = true;
-        if(useAviator) {
+        if(useAviator) {//TODO
             String exp = tl.toString();
             System.out.println("exp: " + exp);
-            return new Data(AviatorEvaluator.execute(exp), 4);
+            Object result = AviatorEvaluator.execute(exp);
+            if(result instanceof Long) result = Long.toString((long)result);
+            if(result instanceof Boolean) {
+                return new Data(result, 1);
+            } else if(result instanceof Integer) {
+                return new Data(result, 2);
+            } else if(result instanceof Float || result instanceof Double) {
+                return new Data(result, 3);
+            } else if(result instanceof String) {
+                String sr = (String) result;
+                if(sr.equals("true")) return new Data(true, 1);
+                if(sr.equals("false")) return new Data(false, 1);
+
+                try {
+                    int vi = Integer.parseInt(sr);
+                    return new Data(vi, 2);
+                } catch (NumberFormatException ex) {
+                    try {
+                        double vd = Double.parseDouble(sr);
+                        return new Data(vd, 3);
+                    } catch (NumberFormatException ex1) {
+                        try {
+                            float vf = Float.parseFloat(sr);
+                            return new Data(new BigDecimal(String.valueOf(vf)).doubleValue(), 3);
+                        } catch (NumberFormatException ex2) {
+                            return new Data(sr, 4);
+                        }
+                    }
+                }
+            } else {
+                return new Data(result.toString(), 4);
+            }
         } else {
             return Rtpl.calDataExp(tl);
         }
@@ -495,12 +557,25 @@ public class Rtpl {
                 if("this".equals(kStr)) continue;
                 data.put(kStr, e.getValue());
             }
-        } else data = (ref == null || "".equals(ref)) ? odata : odata.get(ref);
+        } else {
+            data = (ref == null || "".equals(ref)) ? odata : odata.get(ref);
+        }
         return data;
     }
 
     private static String[] getParasOfInclude(String frag) {
-        return Rtpl.getParasOfSet(frag);
+        String[] pieces = frag.split(" ");
+        String[] paras = new String[2];
+        int count = 0;
+        for (String p : pieces) {
+            if ("".equals(p)) continue;
+            if (count == 1) paras[0] = p;
+            else if (count == 3) paras[1] = p;
+            count++;
+        }
+
+        if(paras[0].charAt(0) == '\'' || paras[0].charAt(0) == '"') paras[0] = paras[0].substring(1, paras[0].length() - 1);
+        return paras;
     }
 
     private static String processInclude(Data odata, String name, String ref) {

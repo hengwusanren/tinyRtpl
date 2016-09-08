@@ -12,6 +12,7 @@ import org.junit.Test;
 import java.util.Arrays;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import static tinyrtpl.Mock.*;
 
@@ -109,5 +110,57 @@ public class TestData extends TestCase {
         Assert.assertEquals("null", new Data(null).toJsonString());
         Assert.assertEquals("0", new Data(0, 2).toJsonString());
         Assert.assertEquals("\"0\"", new Data("0", 4).toJsonString());
+    }
+
+    @Test
+    public void testEquals() {
+        HashMap<Object, Object> map = new HashMap<>();
+        Data data = new Data();
+        Assert.assertEquals(new Data(map, 5), data);
+        map.put("1", false);
+        data.put("1", false);
+        Assert.assertEquals(new Data(map, 5), data);
+        map.put("2", 0);
+        data.put("2", 0);
+        Assert.assertEquals(new Data(map, 5), data);
+        map.put(true, 0);
+        data.put(true, 0);
+        Assert.assertEquals(new Data(map, 5), data);
+        map.put(3, "");
+        data.put(3, "");
+        Assert.assertEquals(new Data(map, 5), data);
+        map.put(-1.2, "\"\n\r\n123 qwe.wer.14\" --=$\"");
+        data.put(-1.2, "\"\n\r\n123 qwe.wer.14\" --=$\"");
+        Assert.assertEquals(new Data(map, 5), data);
+        map.put("\" \n\r", null);
+        data.put("\" \n\r", null);
+        Assert.assertEquals(new Data(map, 5), data);
+        map.put("array", arrayListValue0);
+        data.put("array", arrayListValue0);
+        Assert.assertEquals(new Data(map, 5), data);
+//        System.out.println(data.toString());
+//        System.out.println(data.toJsonString());
+
+        ArrayList<Object> array = new ArrayList<>();
+        data = new Data(new ArrayList<>(), 6);
+        Assert.assertEquals(new Data(array, 6), data);
+        array.add(1);
+        data.add(1);
+        Assert.assertEquals(new Data(array, 6), data);
+        array.add(false);
+        data.add(false);
+        Assert.assertEquals(new Data(array, 6), data);
+        array.add(0.0);
+        data.add(0.0);
+        Assert.assertEquals(new Data(array, 6), data);
+        array.add(0.0f);
+        data.add(0.0f);
+        Assert.assertEquals(new Data(array, 6), data);
+        array.add(" ");
+        data.add(" ");
+        Assert.assertEquals(new Data(array, 6), data);
+        array.add(mapValue0);
+        data.add(mapValue0);
+        Assert.assertEquals(new Data(array, 6), data);
     }
 }

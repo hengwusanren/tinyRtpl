@@ -13,7 +13,7 @@ import tinyrtpl.Mock.*;
 import static tinyrtpl.Mock.*;
 
 public class TestRtpl extends TestCase {
-    public static Rtpl rtpl0 = new Rtpl(new Data(mapValueForTpl, 5), Rtpl.readFile("test-list"), "./data/");
+    public static Rtpl rtpl0 = new Rtpl(new Data(mapValueForTpl, 5), "test-list", "D:\\programs\\tinyRtpl\\data", true);
 
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {

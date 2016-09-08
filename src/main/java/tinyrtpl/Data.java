@@ -187,6 +187,12 @@ public class Data {
             case 4:
                 str = (String) obj;
                 break;
+            case 5:
+                str = "map";
+                break;
+            case 6:
+                str = "array";
+                break;
             default:
                 str = "";
         }
@@ -454,6 +460,11 @@ public class Data {
             if (index >= len || index < 0) return;
             this.varray.set(index, Data.dataOf(value));
         }
+    }
+
+    public void add(Object value) {
+        if(this.type != 6) return;
+        this.varray.add(Data.dataOf(value));
     }
 
     public Data get(Object key) {
