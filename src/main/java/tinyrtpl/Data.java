@@ -165,7 +165,7 @@ public class Data {
     }
 
     private static String stringOf(Object obj, int type) {
-        if(obj == null || type == 0) return "null";
+        if(obj == null || type == 0) return "";
         String str;
         switch (type) {
             case 1:

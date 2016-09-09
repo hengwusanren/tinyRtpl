@@ -13,13 +13,6 @@ import tinyrtpl.Mock.*;
 import static tinyrtpl.Mock.*;
 
 public class TestRtpl extends TestCase {
-    public static Rtpl rtpl0 = new Rtpl(new Data(mapValueForTpl, 5), "test-list", "D:\\programs\\tinyRtpl\\data", true);
-
-    @BeforeClass
-    public static void setUpBeforeClass() throws Exception {
-        //TODO
-    }
-
     @Test
     public void testProcessIf() {
         //TODO
@@ -42,6 +35,7 @@ public class TestRtpl extends TestCase {
 
     @Test
     public void testRtpl0() {
-        System.out.println(rtpl0.toString());
+        String rtpl0 = Rtpl.compile(new Data(mapValueForTpl, 5), "D:\\programs\\tinyRtpl\\data\\test-list");
+        System.out.println(rtpl0);
     }
 }

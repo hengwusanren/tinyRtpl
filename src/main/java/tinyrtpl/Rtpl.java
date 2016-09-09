@@ -11,6 +11,8 @@ import java.util.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.File;
+import java.io.IOException;
 import org.apache.commons.lang3.StringEscapeUtils;
 // 指向当前数据的ref用"this."开头，否则是全局变量
 
@@ -20,12 +22,29 @@ public class Rtpl {
     private String tpl;
     private String value;
 
-    public Rtpl(Data data, String src, String dir) {
-        Rtpl.tplFileBaseDir = dir;
+    public Rtpl(Data data, String filePath) {
+        if(filePath == null) return;
+        File file = new File(filePath);
+        String name = file.getName();
+        if(name.indexOf('.') < 0) {
+            filePath = filePath + ".html";
+            file = new File(filePath);
+            name = name + ".html";
+        }
+        String path = file.getParent();
+        Rtpl.tplFileBaseDir = path;
+        this.make(data, readFile(Rtpl.getFilePath(name)));
+    }
+
+    public String make(Data data, String src) {
         this.scope.put("this", data);
         this.tpl = src;
         this.value = Rtpl.process(this.scope, this.tpl, 0);
-        System.out.println(this.value);
+        return this.value;
+    }
+
+    public static String compile(Data data, String filePath) {
+        return new Rtpl(data, filePath).value;
     }
 
     @Override
@@ -33,17 +52,8 @@ public class Rtpl {
         return this.value;
     }
 
-    public Rtpl(Data data, String src, String dir, boolean file) {
-        Rtpl.tplFileBaseDir = dir;
-        new Rtpl(data, file ? readFile(Rtpl.getFilePath(src)) : src, dir);
-    }
-
-    public Rtpl(Data data, String src) {
-        if(Rtpl.tplFileBaseDir != null) new Rtpl(data, src, Rtpl.tplFileBaseDir);
-    }
-
     private static String getFilePath(String tplName) {
-        return Rtpl.tplFileBaseDir + "/" + (tplName.endsWith(".html") ? tplName : (tplName + ".html"));
+        return (Rtpl.tplFileBaseDir == null ? "." : Rtpl.tplFileBaseDir) + "/" + (tplName.endsWith(".html") ? tplName : (tplName + ".html"));
     }
 
     private static int typeOfFrag(String frag) {
@@ -60,7 +70,7 @@ public class Rtpl {
 
     private static int indexOfEndingOverPairs(String s, int beginPos, String ending, String p1, String p2) {
         int endingOccur = s.indexOf(ending, beginPos);
-        if(endingOccur < 0) return -1;
+        if (endingOccur < 0) return -1;
 
         int p1Count = 0;
         int p2Count = 0;
@@ -68,7 +78,7 @@ public class Rtpl {
         int p2Len = p2.length();
         int i;
 
-        while(true) {
+        while (true) {
             for (i = beginPos; i < endingOccur; i++) {
                 if (s.indexOf(p1, i) == i) {
                     p1Count++;
@@ -142,17 +152,17 @@ public class Rtpl {
         String block;
         int p = 0;
         int fragBegin = blocks.indexOf("{{", p);
-        if(fragBegin < 0) return branches;
+        if (fragBegin < 0) return branches;
         int fragEnd = blocks.indexOf("}}", fragBegin + 2);
-        if(fragEnd < 0) return branches;
+        if (fragEnd < 0) return branches;
         condition = blocks.substring(fragBegin + 5, fragEnd).trim(); // {{if condition}}
 
         int findBegin = fragEnd + 2;
-        while(true) {
+        while (true) {
             int elseBegin = Rtpl.indexOfEndingOverPairs(blocks, findBegin, "{{else", "{{if", "{{/if}}");
-            if(elseBegin < 0) break;
+            if (elseBegin < 0) break;
             int elseEnd = blocks.indexOf("}}", elseBegin + 6);
-            if(elseEnd < 0) break;
+            if (elseEnd < 0) break;
             block = blocks.substring(findBegin, elseBegin);
             branches.put(condition, block);
             condition = blocks.substring(elseBegin + (blocks.indexOf("{{else if", elseBegin) == elseBegin ? 9 : 6), elseEnd).trim();
@@ -252,12 +262,12 @@ public class Rtpl {
 
         public TokenList(int t, Object v) {
             this.type = t;
-            if(t != 0) this.data = v;
+            if (t != 0) this.data = v;
             else this.list = new ArrayList<TokenList>();
         }
 
         public TokenList add(int t, Object v) {
-            if(this.type != 0) {
+            if (this.type != 0) {
                 int ot = this.type;
                 Object od = this.data;
                 this.type = 0;
@@ -265,14 +275,14 @@ public class Rtpl {
                 this.list = new ArrayList<TokenList>();
                 this.add(ot, od).add(t, v);
             } else {
-                if(this.list == null) this.list = new ArrayList<TokenList>();
+                if (this.list == null) this.list = new ArrayList<TokenList>();
                 this.list.add(new TokenList(t, v));
             }
             return this;
         }
 
         public TokenList add(TokenList tl) {
-            if(this.type != 0) {
+            if (this.type != 0) {
                 this.add(tl.type, tl.data);
             } else {
                 this.list.add(tl);
@@ -281,21 +291,21 @@ public class Rtpl {
         }
 
         public TokenList get(int index) {
-            if(this.type != 0) return null;
+            if (this.type != 0) return null;
             return this.list.get(index);
         }
 
         public TokenList set(int index, int type, Object v) {
-            if(this.type != 0) return this;
+            if (this.type != 0) return this;
             this.list.set(index, type == 0 ? (TokenList) v : new TokenList(type, v));
             return this;
         }
 
         public TokenList concat(TokenList tl) {
-            if(tl.type != 0) {
+            if (tl.type != 0) {
                 return this.add(tl);
             }
-            if(this.type != 0) {
+            if (this.type != 0) {
                 int ot = this.type;
                 Object od = this.data;
                 this.type = 0;
@@ -313,13 +323,13 @@ public class Rtpl {
 
         @Override
         public String toString() {
-            if(this.type == 0) {
+            if (this.type == 0) {
                 StringBuilder sb = new StringBuilder("");
-                for(TokenList tl : this.list) {
+                for (TokenList tl : this.list) {
                     sb.append(tl.toString());
                 }
                 return sb.toString();
-            } else if(this.type == 1) {
+            } else if (this.type == 1) {
                 return this.data.toString();
             } else {
                 return ((Data) this.data).toJsonString();
@@ -329,27 +339,27 @@ public class Rtpl {
 
     // 得到exp的TokenList
     private static TokenList getTokensOfExp(Data data, String oexp) {
-        if(oexp == null || "".equals(oexp)) return null;
+        if (oexp == null || "".equals(oexp)) return null;
         String exp = oexp + " ";
 
         // ...(...)...
         int bracketBegin = exp.indexOf('(');
-        if(bracketBegin >= 0) {
+        if (bracketBegin >= 0) {
             int leftBracketCount = 1;
-            for(int i = bracketBegin + 1, len = exp.length(); i < len; i++) {
+            for (int i = bracketBegin + 1, len = exp.length(); i < len; i++) {
                 char c = exp.charAt(i);
-                if(c == ')') {
+                if (c == ')') {
                     leftBracketCount--;
-                    if(leftBracketCount == 0) {
+                    if (leftBracketCount == 0) {
                         return Rtpl.getTokensOfExp(data, exp.substring(0, bracketBegin))
                                 .add(Rtpl.getTokensOfExp(data, exp.substring(bracketBegin + 1, i)))
                                 .concat(Rtpl.getTokensOfExp(data, exp.substring(i + 1)));
                     }
-                } else if(c == '(') {
+                } else if (c == '(') {
                     leftBracketCount++;
                 }
             }
-            if(leftBracketCount > 0) return null;
+            if (leftBracketCount > 0) return null;
         }
 
         // exp里只剩operator、reference、constant
@@ -361,54 +371,54 @@ public class Rtpl {
         int nowRefBegin = -1;
         boolean nowIsStr = false;
         int nowStrBegin = -1;
-        for(int i = 0; i < len; i++) {
+        for (int i = 0; i < len; i++) {
             char c = charArr[i];
-            if(nowIsStr) {
-                if(c == '"' && !(i - 1 >= nowStrBegin && charArr[i - 1] == '\\')) {
+            if (nowIsStr) {
+                if (c == '"' && !(i - 1 >= nowStrBegin && charArr[i - 1] == '\\')) {
                     r.add(new TokenList(2, new Data(exp.substring(nowStrBegin + 1, i), 4))); // add a data
                     nowIsStr = false;
                     nowIsRef = false;
                 }
                 continue;
             }
-            if((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '$' || c == '_' || c == '.'
+            if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '$' || c == '_' || c == '.'
                     || (c >= '0' && c <= '9')) { // do with letter
-                if(nowIsRef) continue;
+                if (nowIsRef) continue;
                 nowIsRef = true;
                 nowRefBegin = i;
-            } else if("+-*/%".indexOf(c) >= 0) { // do with +-*/%
-                if(nowIsRef) {
+            } else if ("+-*/%".indexOf(c) >= 0) { // do with +-*/%
+                if (nowIsRef) {
                     r.add(2, Rtpl._get(data, exp.substring(nowRefBegin, i), false)); // add a data
                     nowIsRef = false;
                 }
                 r.add(1, Character.toString(c)); // add an op
-            } else if(c == '>' || c == '<') {
-                if(nowIsRef) {
+            } else if (c == '>' || c == '<') {
+                if (nowIsRef) {
                     r.add(2, Rtpl._get(data, exp.substring(nowRefBegin, i), false)); // add a data
                     nowIsRef = false;
                 }
-                if(i < len - 1 && charArr[i + 1] == '=') { // do with >=, <=
+                if (i < len - 1 && charArr[i + 1] == '=') { // do with >=, <=
                     r.add(1, Character.toString(c) + "="); // add an op
                     i++;
                 } else { // do with >, <
                     r.add(1, Character.toString(c)); // add an op
                 }
-            } else if("=&|".indexOf(c) >= 0) {
-                if(nowIsRef) {
+            } else if ("=&|".indexOf(c) >= 0) {
+                if (nowIsRef) {
                     r.add(2, Rtpl._get(data, exp.substring(nowRefBegin, i), false)); // add a data
                     nowIsRef = false;
                 }
-                if(i < len - 1 && charArr[i + 1] == c) { // do with ==, &&, ||
+                if (i < len - 1 && charArr[i + 1] == c) { // do with ==, &&, ||
                     r.add(1, Character.toString(c) + Character.toString(c)); // add an op
                     i++;
                     continue;
                 }
                 return null;
-            } else if(c == '"') { // do with "
+            } else if (c == '"') { // do with "
                 nowIsStr = true;
                 nowStrBegin = i;
             } else { // do with whitespace
-                if(nowIsRef) {
+                if (nowIsRef) {
                     r.add(2, Rtpl._get(data, exp.substring(nowRefBegin, i), false)); // add a data
                     nowIsRef = false;
                 }
@@ -427,33 +437,32 @@ public class Rtpl {
 
     // 不断把其中的简单列表求值、替换
     private static Data evalTokenList(TokenList tl) {
-        if(tl.type == 1) return null;
-        if(tl.type == 2) return (Data)(tl.data);
-        for(int i = 0, len = tl.size(); i < len; i++) {
-            if(tl.get(i).type == 0)
+        if (tl.type == 1) return null;
+        if (tl.type == 2) return (Data) (tl.data);
+        for (int i = 0, len = tl.size(); i < len; i++) {
+            if (tl.get(i).type == 0)
                 tl.set(i, 2, evalTokenList(tl.get(i)));
         }
-        if(tl.size() == 1) {
+        if (tl.size() == 1) {
             tl = tl.get(0);
             return evalTokenList(tl);
         }
 
         boolean useAviator = true;
-        if(useAviator) {//TODO
+        if (useAviator) {//TODO
             String exp = tl.toString();
-            System.out.println("exp: " + exp);
             Object result = AviatorEvaluator.execute(exp);
-            if(result instanceof Long) result = Long.toString((long)result);
-            if(result instanceof Boolean) {
+            if (result instanceof Long) result = Long.toString((long) result);
+            if (result instanceof Boolean) {
                 return new Data(result, 1);
-            } else if(result instanceof Integer) {
+            } else if (result instanceof Integer) {
                 return new Data(result, 2);
-            } else if(result instanceof Float || result instanceof Double) {
+            } else if (result instanceof Float || result instanceof Double) {
                 return new Data(result, 3);
-            } else if(result instanceof String) {
+            } else if (result instanceof String) {
                 String sr = (String) result;
-                if(sr.equals("true")) return new Data(true, 1);
-                if(sr.equals("false")) return new Data(false, 1);
+                if (sr.equals("true")) return new Data(true, 1);
+                if (sr.equals("false")) return new Data(false, 1);
 
                 try {
                     int vi = Integer.parseInt(sr);
@@ -480,29 +489,29 @@ public class Rtpl {
     }
 
     private static Data _ex(Data data, String exp) {
-        if(exp == null || "".equals(exp)) return null;
+        if (exp == null || "".equals(exp)) return null;
         int offset = 0;
 
         // [...]
         int squareBracketBegin = exp.indexOf('[');
         int squareBracketEnd = exp.indexOf(']');
-        if(squareBracketBegin < 0) {
-            if(squareBracketEnd >= 0) return null;
-        } else if(squareBracketBegin == 0) {
+        if (squareBracketBegin < 0) {
+            if (squareBracketEnd >= 0) return null;
+        } else if (squareBracketBegin == 0) {
             return null;
-        } else{
-            if(squareBracketEnd <= squareBracketBegin + 1) return null;
+        } else {
+            if (squareBracketEnd <= squareBracketBegin + 1) return null;
         }
-        if(squareBracketBegin > 0) {
+        if (squareBracketBegin > 0) {
             return Rtpl._ex(data, exp.substring(0, squareBracketBegin) + "." + Rtpl._ex(data, exp.substring(squareBracketBegin + 1, squareBracketEnd)).toString() + exp.substring(squareBracketEnd + 1));
         }
 
         // ... ? ... : ...
         int questionPos = exp.indexOf('?');
-        if(questionPos == 0) return null;
-        if(questionPos > 0) {
+        if (questionPos == 0) return null;
+        if (questionPos > 0) {
             int colonPos = exp.indexOf(':');
-            if(colonPos <= questionPos + 1) return null;
+            if (colonPos <= questionPos + 1) return null;
             return Data.op(Rtpl._ex(data, exp.substring(0, questionPos)),
                     Rtpl._ex(data, exp.substring(questionPos + 1, colonPos)),
                     Rtpl._ex(data, exp.substring(colonPos + 1)));
@@ -515,11 +524,11 @@ public class Rtpl {
         String ref = oref.trim();
 
         // const boolean
-        if("true".equals(ref) || "false".equals(ref))
+        if ("true".equals(ref) || "false".equals(ref))
             return new Data("true".equals(ref), 1);
 
         char ch = ref.charAt(0);
-        if(ch >= '0' && ch <= '9') { // const number
+        if (ch >= '0' && ch <= '9') { // const number
             try {
                 int vi = Integer.parseInt(ref);
                 return new Data(vi, 2);
@@ -536,9 +545,9 @@ public class Rtpl {
                     }
                 }
             }
-        } else if(ch == '"') { // const string
+        } else if (ch == '"') { // const string
             int lastQuotationPos = ref.lastIndexOf('"');
-            if(lastQuotationPos <= 0) return null;
+            if (lastQuotationPos <= 0) return null;
             return new Data(ref.substring(1, lastQuotationPos), 4);
         }
 
@@ -554,7 +563,7 @@ public class Rtpl {
             while (it.hasNext()) {
                 Map.Entry e = (Map.Entry) it.next();
                 kStr = (String) e.getKey();
-                if("this".equals(kStr)) continue;
+                if ("this".equals(kStr)) continue;
                 data.put(kStr, e.getValue());
             }
         } else {
@@ -574,7 +583,8 @@ public class Rtpl {
             count++;
         }
 
-        if(paras[0].charAt(0) == '\'' || paras[0].charAt(0) == '"') paras[0] = paras[0].substring(1, paras[0].length() - 1);
+        if (paras[0].charAt(0) == '\'' || paras[0].charAt(0) == '"')
+            paras[0] = paras[0].substring(1, paras[0].length() - 1);
         return paras;
     }
 
@@ -584,10 +594,10 @@ public class Rtpl {
     }
 
     private static String processGet(Data data, String oref) {
-        if(data == null || oref == null) return null;
+        if (data == null || oref == null) return null;
         String ref = oref.trim();
-        if("".equals(ref)) return null;
-        if(ref.charAt(0) == '#') return Rtpl._get(data, ref.substring(1), false).toString();
+        if ("".equals(ref)) return null;
+        if (ref.charAt(0) == '#') return Rtpl._get(data, ref.substring(1), false).toString();
         return StringEscapeUtils.escapeHtml4(Rtpl._get(data, ref, false).toString());
     }
 
