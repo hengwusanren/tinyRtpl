@@ -38,6 +38,11 @@ public class Data {
         }
     };
 
+    /**
+     * Return the type of this Data instance.
+     *
+     * @return the data type represented by an integer
+     */
     public int getType() {
         return this.type;
     }
@@ -47,6 +52,10 @@ public class Data {
         this.vmap = new HashMap<String, Data>();
     }
 
+    /**
+     * Return the data of this Data instance.
+     * @return an object, referring to a certain field of this instance.
+     */
     public Object val() {
         switch (this.type) {
             case 0:
@@ -68,6 +77,11 @@ public class Data {
         }
     }
 
+    /**
+     * Convert the types of keys and values in a common HashMap to <String, Data>.
+     * @param map: a common HashMap<Object, Object>
+     * @return a HashMap<String, Data>
+     */
     private static HashMap<String, Data> dataMapOf(HashMap<Object, Object> map) {
         if(map == null) return null;
         HashMap<String, Data> dmap = new HashMap<>();
@@ -81,6 +95,11 @@ public class Data {
         return dmap;
     }
 
+    /**
+     * Convert the types of elements in a common List to Data.
+     * @param list: a common List of Object
+     * @return an ArrayList of Data
+     */
     private static ArrayList<Data> dataArrayOf(List<Object> list) {
         if(list == null) return null;
         ArrayList<Data> darray = new ArrayList<>();
@@ -93,6 +112,11 @@ public class Data {
         return darray;
     }
 
+    /**
+     * Set the value to a type-specific object.
+     * @param obj: an Object
+     * @param type: an integer
+     */
     public void val(Object obj, int type) {
         if (type >= 0 && type <= 6) {
             this.type = type;
@@ -130,6 +154,10 @@ public class Data {
         }
     }
 
+    /**
+     * Set the value to an object whose type can be inferred.
+     * @param obj: an Object
+     */
     public void val(Object obj) {
         int type = Data.typeOf(obj);
         this.val(obj, type);
@@ -143,6 +171,11 @@ public class Data {
         this.val(obj);
     }
 
+    /**
+     * Return the type of a given Object.
+     * @param obj: an Object
+     * @return the inferred type represented by an integer
+     */
     public static int typeOf(Object obj) {
         if (obj == null) return 0;
         if(obj instanceof Boolean) return 1;
@@ -158,12 +191,32 @@ public class Data {
         return -1;
     }
 
+    /**
+     * Check if this instance has no data.
+     *
+     * @return true or false
+     */
+    public boolean isNull() {
+        return this.type == 0;
+    }
+
+    /**
+     * Return a Data instance of a given Object.
+     * @param obj: an Object that can be a Data or anything else
+     * @return a Data instance
+     */
     public static Data dataOf(Object obj) {
 //        if(Data.className.equals(obj.getClass().getName())) return (Data) obj; // obj is already a Data.
         if(obj instanceof Data) return (Data) obj; // obj is already a Data.
         return new Data(obj);
     }
 
+    /**
+     * Return the string format of a given Object.
+     * @param obj: a type-specific Object
+     * @param type: type pf the Object
+     * @return string of the Object
+     */
     private static String stringOf(Object obj, int type) {
         if(obj == null || type == 0) return "";
         String str;
@@ -199,6 +252,10 @@ public class Data {
         return str;
     }
 
+    /**
+     * Return the json string format of a given Object.
+     * @return json string of the Object
+     */
     public String toJsonString() {
         switch (this.type) {
             case 0:
@@ -247,6 +304,10 @@ public class Data {
         return Data.stringOf(this.val(), this.type);
     }
 
+    /**
+     * Return the number value of this instance.
+     * @return number value in the Object
+     */
     public Object toNumber() {
         if (this.type > 4 || this.type < 1) return 0;
         switch (this.type) {
@@ -277,6 +338,10 @@ public class Data {
         return 0;
     }
 
+    /**
+     * Return the boolean value of this instance.
+     * @return boolean value in the Object
+     */
     public boolean toBoolean() {
         boolean b = false;
         switch (type) {
@@ -303,6 +368,11 @@ public class Data {
         return b;
     }
 
+    /**
+     * Compare this instance with another
+     * @param d: a Data instance
+     * @return equal or not
+     */
     private boolean equalTo(Data d) {
         if(d == null) return false;
         if(this.type != d.type) return false;
@@ -364,6 +434,11 @@ public class Data {
         }
     }
 
+    /**
+     * Compare with another instance.
+     * @param d: a Data instance
+     * @return true or false
+     */
     private boolean compareTo(Data d) {
         if(d != null && d.type < this.type) return d.compareTo(this);
         switch (this.type) {
@@ -440,9 +515,15 @@ public class Data {
         return false;
     }
 
+    /**
+     * Put a key-value pair into the data if this is a map;
+     * or set a index-specific element if this is an array.
+     * @param key: key
+     * @param value: value
+     */
     public void put(Object key, Object value) {
         if (this.type != 5 && this.type != 6) return;
-        int kType = this.typeOf(key);
+        int kType = Data.typeOf(key);
         if (kType < 1 || kType > 4) return;
         String keyStr = Data.stringOf(key, kType);
         if (this.type == 5) {
@@ -462,14 +543,23 @@ public class Data {
         }
     }
 
+    /**
+     * Add an element to the data if this is an array.
+     * @param value: data of a new element
+     */
     public void add(Object value) {
         if(this.type != 6) return;
         this.varray.add(Data.dataOf(value));
     }
 
+    /**
+     * Get an element(value) from the array(map) of this instance.
+     * @param key: a certain key or index
+     * @return the element or value
+     */
     public Data get(Object key) {
         if (this.type != 5 && this.type != 6) return null;
-        int kType = this.typeOf(key);
+        int kType = Data.typeOf(key);
         if (kType < 1 || kType > 4) return null;
         String keyStr = Data.stringOf(key, kType);
         if (this.type == 5) {
@@ -487,6 +577,13 @@ public class Data {
         }
     }
 
+    /**
+     * Binary calculation.
+     * @param fStr: the binary operation
+     * @param a: data1
+     * @param b: data2
+     * @return the result
+     */
     public static Data op(String fStr, Data a, Data b) {
         if (!opTypes.containsKey(fStr)) return null;
         int f = opTypes.get(fStr);
@@ -631,6 +728,13 @@ public class Data {
         return data;
     }
 
+    /**
+     * Ternary conditional calculation.
+     * @param a: condition expression
+     * @param b: data1
+     * @param c: data2
+     * @return the result
+     */
     public static Data op(Data a, Data b, Data c) {
         return (a.toBoolean() ? b : c);
     }

@@ -30,7 +30,18 @@ public class TestRtpl extends TestCase {
 
     @Test
     public void testProcessGet() {
-        //TODO
+        Assert.assertEquals("{{}}", Rtpl.compile(data0, tpl0_0, false));
+        Assert.assertEquals("0", Rtpl.compile(data0, tpl0_1, false));
+        Assert.assertEquals("ke", Rtpl.compile(data0, tpl0_2, false));
+        Assert.assertEquals("false", Rtpl.compile(data0, tpl0_3, false));
+        Assert.assertEquals("4.1", Rtpl.compile(data0, tpl0_4, false));
+        Assert.assertEquals("4.1", Rtpl.compile(data0, tpl0_5, false));
+        Assert.assertEquals("3.0", Rtpl.compile(data0, tpl0_6, false));
+        Assert.assertEquals("0.0", Rtpl.compile(data0, tpl0_7, false));
+        Assert.assertEquals("this.0", Rtpl.compile(data0, tpl0_8, false));
+        Assert.assertEquals("true", Rtpl.compile(data0, tpl0_9, false));
+        Assert.assertEquals("shen ke", Rtpl.compile(data0, tpl0_10, false));
+        Assert.assertEquals("{{if !this.2}}{{this.2}}{{else}}shen {{this.shen}}", Rtpl.compile(data0, tpl0_11, false));
     }
 
     @Test

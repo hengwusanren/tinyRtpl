@@ -18,11 +18,16 @@ import org.apache.commons.lang3.StringEscapeUtils;
 
 public class Rtpl {
     private static String tplFileBaseDir;
-    private Data scope = new Data();
+    private Data scope;
     private String tpl;
     private String value;
 
+    public Rtpl() {
+        this.scope = new Data();
+    }
+
     public Rtpl(Data data, String filePath) {
+        this.scope = new Data();
         if(filePath == null) return;
         File file = new File(filePath);
         String name = file.getName();
@@ -36,6 +41,13 @@ public class Rtpl {
         this.make(data, readFile(Rtpl.getFilePath(name)));
     }
 
+    /**
+     * Make a html string from given data and source template string.
+     *
+     * @param data: data to render
+     * @param src:  view template to render
+     * @return a html string
+     */
     public String make(Data data, String src) {
         this.scope.put("this", data);
         this.tpl = src;
@@ -43,8 +55,26 @@ public class Rtpl {
         return this.value;
     }
 
+    /**
+     * Compile given data and a template file into a html string.
+     * @param data: data to render
+     * @param filePath: view template file to render
+     * @return a html string
+     */
     public static String compile(Data data, String filePath) {
         return new Rtpl(data, filePath).value;
+    }
+
+    /**
+     * Compile given data and source template string.
+     *
+     * @param data:     data to render
+     * @param src:      view template to render
+     * @param isString: a flag indicating that the input is a string instead of a filename
+     * @return a html string
+     */
+    public static String compile(Data data, String src, boolean isString) {
+        return new Rtpl().make(data, src);
     }
 
     @Override
@@ -52,22 +82,42 @@ public class Rtpl {
         return this.value;
     }
 
+    /**
+     * Get the full name of the template file, with the dir path known above.
+     * @param tplName: name of the template file
+     * @return full name
+     */
     private static String getFilePath(String tplName) {
         return (Rtpl.tplFileBaseDir == null ? "." : Rtpl.tplFileBaseDir) + "/" + (tplName.endsWith(".html") ? tplName : (tplName + ".html"));
     }
 
+    /**
+     * Get the type of a frag.
+     * @param frag: a string in {{}}
+     * @return frag type represented by an integer
+     */
     private static int typeOfFrag(String frag) {
-        if (frag.startsWith("if ")) return 1;//"if";
-        if (frag.startsWith("else if ")) return 2;//"elseif";
-        if (frag.startsWith("else")) return 3;//"else";
-        if (frag.startsWith("/if")) return 4;//"endif";
-        if (frag.startsWith("each ")) return 5;//"each";
-        if (frag.startsWith("/each")) return 6;//"endeach";
-        if (frag.startsWith("set ")) return 7;//"set";
-        if (frag.startsWith("include ")) return 8;//"include";
-        return 9;//"get";
+        if (frag.startsWith("if ")) return 1; // "if";
+        if (frag.startsWith("else if ")) return 2; // "elseif";
+        if (frag.startsWith("else")) return 3; // "else";
+        if (frag.startsWith("/if")) return 4; // "endif";
+        if (frag.startsWith("each ")) return 5; // "each";
+        if (frag.startsWith("/each")) return 6; // "endeach";
+        if (frag.startsWith("set ")) return 7; // "set";
+        if (frag.startsWith("include ")) return 8; // "include";
+        return 9; // "get";
     }
 
+    /**
+     * Find the occurrence of the target pattern, from the beginning position in a source string,
+     * where p1 and p2 which will appear in pair and should be skipped. Sometimes p2 equals the pattern.
+     * @param s: the string scope
+     * @param beginPos: begin position of the indexing task
+     * @param ending: the pattern to find
+     * @param p1: the pair beginning
+     * @param p2: the pair ending
+     * @return the occurrence of the ending pattern
+     */
     private static int indexOfEndingOverPairs(String s, int beginPos, String ending, String p1, String p2) {
         int endingOccur = s.indexOf(ending, beginPos);
         if (endingOccur < 0) return -1;
@@ -102,17 +152,28 @@ public class Rtpl {
         }
     }
 
+    /**
+     * Process the data and template string forward, from a certain position.
+     * @param data: data to render
+     * @param tpl: template string to render
+     * @param begin: begin position
+     * @return a html string
+     */
     private static String process(Data data, String tpl, int begin) {
         int fragBegin = tpl.indexOf("{{", begin);
         if (fragBegin < 0) return tpl.substring(begin);
         int fragEnd = tpl.indexOf("}}", fragBegin + 2);
         if (fragEnd < 0) return tpl.substring(begin);
-        String curFrag = tpl.substring(fragBegin + 2, fragEnd);
-        int curFType = Rtpl.typeOfFrag(curFrag);
+
+        String curFrag = tpl.substring(fragBegin + 2, fragEnd); // get the current frag
+        int curFType = Rtpl.typeOfFrag(curFrag); // identify the type of this frag
 
         // "{{if ...}}..."
         if (curFType == 1) {
             int blockEnd = Rtpl.indexOfEndingOverPairs(tpl, fragEnd + 2, "{{/if}}", "{{if", "{{/if}}");
+            if (blockEnd < 0) {
+                return tpl.substring(fragBegin);
+            }
             return tpl.substring(begin, fragBegin) + Rtpl.processIf(data, Rtpl.getBranchesOfIf(tpl.substring(fragBegin, blockEnd))) + Rtpl.process(data, tpl, blockEnd + 7);
         }
 
@@ -146,6 +207,11 @@ public class Rtpl {
         return tpl.substring(begin);
     }
 
+    /**
+     * Parse the conditions and blocks from a string.
+     * @param blocks: the string to parse
+     * @return a LinkedHashMap, where the key is a condition and the value is a block
+     */
     private static LinkedHashMap<String, String> getBranchesOfIf(String blocks) {
         LinkedHashMap<String, String> branches = new LinkedHashMap<String, String>();
         String condition;
@@ -174,6 +240,12 @@ public class Rtpl {
         return branches;
     }
 
+    /**
+     * Process an IF string.
+     * @param data: the data scope
+     * @param branches: the <condition, block> map
+     * @return the (processed) branch
+     */
     private static String processIf(Data data, LinkedHashMap<String, String> branches) {
         Iterator it = branches.entrySet().iterator();
         while (it.hasNext()) {
@@ -185,10 +257,22 @@ public class Rtpl {
         return "";
     }
 
+    /**
+     * Return the boolean result of an expression.
+     * @param data: the data scope
+     * @param exp: the expression to evaluate
+     * @return a boolean value
+     */
     private static boolean _if(Data data, String exp) {
+        if (exp == null || "".equals(exp.trim())) return true;
         return Rtpl._ex(data, exp).toBoolean();
     }
 
+    /**
+     * Parse parameters of an EACH fragment.
+     * @param frag: an EACH fragment
+     * @return a string array
+     */
     private static String[] getParasOfEach(String frag) {
         String[] pieces = frag.split(" ");
         String[] paras = new String[3];
@@ -203,6 +287,15 @@ public class Rtpl {
         return paras;
     }
 
+    /**
+     * Process an EACH string.
+     * @param data: the data scope
+     * @param tpl: the template string
+     * @param ref: the target object to iterate
+     * @param valueName: name of value variable
+     * @param indexName: name of index variable
+     * @return the processed string
+     */
     private static String processEach(Data data, String tpl, String ref, String valueName, String indexName) {
         StringBuilder sb = new StringBuilder("");
         if (valueName == null || "".equals(valueName.trim())) valueName = "$value";
@@ -228,6 +321,11 @@ public class Rtpl {
         return sb.toString();
     }
 
+    /**
+     * Parse parameters from a SET fragment.
+     * @param frag: a SET frag
+     * @return a string array
+     */
     private static String[] getParasOfSet(String frag) {
         String[] pieces = frag.split(" ");
         String[] paras = new String[2];
@@ -241,15 +339,31 @@ public class Rtpl {
         return paras;
     }
 
+    /**
+     * Assign a value to a reference.
+     * @param data: the data scope
+     * @param ref: the reference
+     * @param value: the value
+     */
     private static void _set(Data data, String ref, Object value) {
         data.put(ref, value);
     }
 
+    /**
+     * Process a SET string, namely to assign a value to a reference.
+     * @param data: the data scope
+     * @param ref: the reference
+     * @param exp: the expression string
+     * @return the processed string
+     */
     private static String processSet(Data data, String ref, String exp) {
         Rtpl._set(data, ref, Rtpl._ex(data, exp));
         return "";
     }
 
+    /**
+     * Class of token list.
+     */
     public static class TokenList {
         private int type; // 0: list, 1: op, 2: data
         private Object data;
@@ -337,7 +451,12 @@ public class Rtpl {
         }
     }
 
-    // 得到exp的TokenList
+    /**
+     * Translate a string to token list.
+     * @param data: the data scope
+     * @param oexp: the string (to evaluate)
+     * @return a token list
+     */
     private static TokenList getTokensOfExp(Data data, String oexp) {
         if (oexp == null || "".equals(oexp)) return null;
         String exp = oexp + " ";
@@ -386,7 +505,7 @@ public class Rtpl {
                 if (nowIsRef) continue;
                 nowIsRef = true;
                 nowRefBegin = i;
-            } else if ("+-*/%".indexOf(c) >= 0) { // do with +-*/%
+            } else if ("+-*/%!".indexOf(c) >= 0) { // do with +-*/%
                 if (nowIsRef) {
                     r.add(2, Rtpl._get(data, exp.substring(nowRefBegin, i), false)); // add a data
                     nowIsRef = false;
@@ -429,13 +548,22 @@ public class Rtpl {
         return r;
     }
 
-    //TODO: 表达式求值
-    private static Data calDataExp(TokenList exp) {
+    /**
+     * Translate a token list to a Data expression and evaluate it.
+     *
+     * @param expTl: tokens
+     * @return a Data instance
+     */
+    private static Data calDataExp(TokenList expTl) {
         //TODO
         return null;
     }
 
-    // 不断把其中的简单列表求值、替换
+    /**
+     * Return a Data instance evaluated from tokens.
+     * @param tl: tokens
+     * @return a Data instance
+     */
     private static Data evalTokenList(TokenList tl) {
         if (tl.type == 1) return null;
         if (tl.type == 2) return (Data) (tl.data);
@@ -488,6 +616,12 @@ public class Rtpl {
         }
     }
 
+    /**
+     * Return a data evaluated from an expression.
+     * @param data: the data scope
+     * @param exp: the expression
+     * @return a Data instance
+     */
     private static Data _ex(Data data, String exp) {
         if (exp == null || "".equals(exp)) return null;
         int offset = 0;
@@ -520,6 +654,13 @@ public class Rtpl {
         return Rtpl.evalTokenList(Rtpl.getTokensOfExp(data, exp));
     }
 
+    /**
+     * Return the referred data.
+     * @param odata: the data scope
+     * @param oref: the reference
+     * @param wrap: if need to wrap the referred data with "this"
+     * @return a Data instance
+     */
     private static Data _get(Data odata, String oref, boolean wrap) {
         String ref = oref.trim();
 
@@ -567,11 +708,16 @@ public class Rtpl {
                 data.put(kStr, e.getValue());
             }
         } else {
-            data = (ref == null || "".equals(ref)) ? odata : odata.get(ref);
+            data = (ref == null || "".equals(ref)) ? null : odata.get(ref);
         }
         return data;
     }
 
+    /**
+     * Parse parameters from an INCLUDE fragment.
+     * @param frag: an INCLUDE frag
+     * @return a string array
+     */
     private static String[] getParasOfInclude(String frag) {
         String[] pieces = frag.split(" ");
         String[] paras = new String[2];
@@ -588,19 +734,45 @@ public class Rtpl {
         return paras;
     }
 
+    /**
+     * Process a INCLUDE string.
+     * @param odata: the data scope
+     * @param name: name of the template to include
+     * @param ref: the reference of the data which become the scope of the template to include
+     * @return a processed string
+     */
     private static String processInclude(Data odata, String name, String ref) {
         Data data = Rtpl._get(odata, ref, true);
         return Rtpl.process(data, Rtpl.readFile(Rtpl.getFilePath(name)), 0);
     }
 
+    /**
+     * Process a GET string.
+     * @param data: the data scope
+     * @param oref: the reference
+     * @return the ultimate value in string format
+     */
     private static String processGet(Data data, String oref) {
         if (data == null || oref == null) return null;
         String ref = oref.trim();
-        if ("".equals(ref)) return null;
-        if (ref.charAt(0) == '#') return Rtpl._get(data, ref.substring(1), false).toString();
-        return StringEscapeUtils.escapeHtml4(Rtpl._get(data, ref, false).toString());
+        if ("".equals(ref)) return "{{}}";
+        Data r;
+        if (ref.charAt(0) == '#') {
+            r = Rtpl._get(data, ref.substring(1), false);
+            if (r == null || r.isNull()) return "{{" + oref + "}}";
+            return StringEscapeUtils.escapeHtml4(r.toString());//String());
+        } else {
+            r = Rtpl._get(data, ref, false);
+            if (r == null || r.isNull()) return "{{" + oref + "}}";
+            return r.toString();//String();
+        }
     }
 
+    /**
+     * Read a template file to a string.
+     * @param fileName: name of the template file
+     * @return a string
+     */
     public static String readFile(String fileName) {
         if (fileName == null) return "";
         BufferedReader br = null;

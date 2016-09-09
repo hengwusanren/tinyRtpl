@@ -79,4 +79,28 @@ public class Mock {
             add("");
         }
     };
+
+    public static Data data0 = new Data() {
+        {
+            put(0, "a");
+            put(1, null);
+            put("2", true);
+            put("3.0", 0);
+            put(4.1, 0.1f);
+            put(false, -143342134);
+            put("shen", "ke");
+        }
+    };
+    public static String tpl0_0 = "{{}}";
+    public static String tpl0_1 = "{{0}}";
+    public static String tpl0_2 = "{{this.shen}}";
+    public static String tpl0_3 = "{{false}}";
+    public static String tpl0_4 = "{{4.1}}";
+    public static String tpl0_5 = "{{\"4.1\"}}";
+    public static String tpl0_6 = "{{3.0}}";
+    public static String tpl0_7 = "{{0.0}}";
+    public static String tpl0_8 = "{{if this.0}}this.0{{/if}}";
+    public static String tpl0_9 = "{{if this.2}}{{this.2}}{{else}}shen {{this.shen}}{{/if}}";
+    public static String tpl0_10 = "{{if !this.2}}{{this.2}}{{else}}shen {{this.shen}}{{/if}}";
+    public static String tpl0_11 = "{{if !this.2}}{{this.2}}{{else}}shen {{this.shen}}";
 }
